@@ -1,0 +1,64 @@
+@import './theme.css';
+
+:root {
+  color: var(--text-primary);
+  font-family:
+    'Segoe UI',
+    'SF Pro Display',
+    'Helvetica Neue',
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background:
+    radial-gradient(circle at top, rgba(70, 225, 255, 0.08), transparent 28%),
+    radial-gradient(circle at 20% 20%, rgba(184, 140, 255, 0.08), transparent 24%),
+    var(--background);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: transparent;
+  color: var(--text-primary);
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 120px 120px;
+  mask-image: radial-gradient(circle at center, black, transparent 80%);
+}
+
+button,
+input,
+a {
+  font: inherit;
+}
+
+code {
+  font-family:
+    'SFMono-Regular',
+    Consolas,
+    'Liberation Mono',
+    monospace;
+  color: var(--accent-primary-strong);
+}
+
+#root {
+  min-height: 100vh;
+}

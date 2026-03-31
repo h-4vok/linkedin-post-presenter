@@ -1,0 +1,166 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 16px 24px;
+  backdrop-filter: blur(18px);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--background) 82%, transparent),
+    color-mix(in srgb, var(--background) 64%, transparent)
+  );
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
+}
+
+.inner {
+  width: min(100%, 1100px);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.identity {
+  display: grid;
+  gap: 4px;
+}
+
+.fileName {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.meta {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.dot {
+  color: var(--accent-secondary);
+  margin: 0 6px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.searchField {
+  min-width: min(100%, 360px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  height: 48px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  border: 1px solid var(--border-subtle);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.searchField input {
+  flex: 1;
+  height: 100%;
+  background: transparent;
+  border: 0;
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.searchField input:focus {
+  outline: none;
+}
+
+.searchField:focus-within {
+  border-color: color-mix(in srgb, var(--accent-primary) 45%, var(--border-strong));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-primary) 12%, transparent);
+}
+
+.searchIcon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toggleTrack {
+  width: 52px;
+  height: 30px;
+  border-radius: 999px;
+  padding: 3px;
+  display: inline-flex;
+  align-items: center;
+  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  border: 1px solid var(--border-subtle);
+  transition: background 160ms ease;
+}
+
+.toggleThumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  transition: transform 160ms ease;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+}
+
+.toggle input:checked + .toggleTrack {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent-primary) 72%, var(--surface-elevated)),
+    color-mix(in srgb, var(--accent-secondary) 68%, var(--surface-elevated))
+  );
+}
+
+.toggle input:checked + .toggleTrack .toggleThumb {
+  transform: translateX(22px);
+  background: #08111c;
+}
+
+.toggleLabel {
+  font-size: 0.94rem;
+}
+
+@media (max-width: 900px) {
+  .inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .controls {
+    justify-content: stretch;
+  }
+
+  .searchField {
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .header {
+    padding: 14px 16px;
+  }
+
+  .toggle {
+    justify-content: space-between;
+  }
+}

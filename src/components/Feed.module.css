@@ -1,0 +1,35 @@
+.feed {
+  width: min(100%, var(--feed-width));
+  margin: 0 auto;
+  display: grid;
+  gap: 18px;
+}
+
+.emptyState {
+  width: min(100%, var(--feed-width));
+  margin: 64px auto 0;
+  padding: 28px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, var(--surface-elevated), var(--surface));
+  border: 1px solid var(--border-subtle);
+  text-align: center;
+}
+
+.emptyEyebrow {
+  margin: 0 0 8px;
+  color: var(--accent-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+}
+
+.emptyTitle {
+  margin: 0 0 10px;
+  font-size: 1.55rem;
+}
+
+.emptyDescription {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
