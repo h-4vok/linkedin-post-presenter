@@ -1,7 +1,7 @@
 import { ExternalLink, Sparkles } from 'lucide-react';
 import styles from './PostCard.module.css';
 import { LinkedInPost } from '../types/linkedin';
-import { formatFollowers, isInterested, normalizeDisplayText } from '../utils/linkedin';
+import { formatFollowers, formatPostTextForDisplay, isInterested } from '../utils/linkedin';
 
 interface PostCardProps {
   post: LinkedInPost;
@@ -15,7 +15,7 @@ const WEIGHT_LABELS: Record<LinkedInPost['author_weight'], string> = {
 
 export function PostCard({ post }: PostCardProps) {
   const interested = isInterested(post);
-  const normalizedText = normalizeDisplayText(post.post_text);
+  const normalizedText = formatPostTextForDisplay(post.post_text);
   const followerLabel = formatFollowers(post.author_followers);
   const repostLabel = post.reposted_by
     ? `Reposted by ${post.reposted_by}`

@@ -98,6 +98,69 @@ export function normalizeDisplayText(value: string): string {
   }
 }
 
+function regroupSentencesIntoParagraphs(text: string): string {
+  const sentences = text.split(/(?<=[.!?])\s+(?=(?:["“'([]?[A-Z0-9#]|https?:\/\/))/u).filter(Boolean);
+
+  if (sentences.length <= 1) {
+    return text;
+  }
+
+  const paragraphs: string[] = [];
+  let currentParagraph = '';
+
+  for (const sentence of sentences) {
+    const trimmedSentence = sentence.trim();
+    const shouldBreakBefore =
+      /^([•●▪◦-]\s|\d+\.\s|#|https?:\/\/)/u.test(trimmedSentence) ||
+      (currentParagraph.length > 0 && currentParagraph.trim().endsWith(':'));
+
+    if (shouldBreakBefore && currentParagraph) {
+      paragraphs.push(currentParagraph.trim());
+      currentParagraph = trimmedSentence;
+      continue;
+    }
+
+    const candidate = currentParagraph ? `${currentParagraph} ${trimmedSentence}` : trimmedSentence;
+
+    if (candidate.length > 260 && currentParagraph) {
+      paragraphs.push(currentParagraph.trim());
+      currentParagraph = trimmedSentence;
+    } else {
+      currentParagraph = candidate;
+    }
+  }
+
+  if (currentParagraph) {
+    paragraphs.push(currentParagraph.trim());
+  }
+
+  return paragraphs.join('\n\n');
+}
+
+export function formatPostTextForDisplay(value: string): string {
+  const normalizedText = normalizeDisplayText(value)
+    .replace(/\r\n?/g, '\n')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/([a-z])([A-Z][a-z]{2,})/g, '$1\n$2')
+    .replace(/\s+(https?:\/\/)/g, '\n\n$1')
+    .replace(/\s+([•●▪◦]\s+)/g, '\n$1')
+    .replace(/\s+(\d+\.\s)/g, '\n$1')
+    .replace(/\s+(#\w+)/g, '\n$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  if (normalizedText.includes('\n')) {
+    return normalizedText;
+  }
+
+  if (normalizedText.length < 220) {
+    return normalizedText;
+  }
+
+  return regroupSentencesIntoParagraphs(normalizedText);
+}
+
 export function isInterested(post: LinkedInPost): boolean {
   return post.interest_validation.status === 'interested';
 }
