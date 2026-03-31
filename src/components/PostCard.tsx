@@ -1,7 +1,13 @@
-import { ExternalLink, Sparkles } from 'lucide-react';
+import { Copy, ExternalLink, Sparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import styles from './PostCard.module.css';
 import { LinkedInPost } from '../types/linkedin';
-import { formatFollowers, formatPostTextForDisplay, isInterested } from '../utils/linkedin';
+import {
+  buildPostClipboardText,
+  formatFollowers,
+  formatPostTextForDisplay,
+  isInterested,
+} from '../utils/linkedin';
 
 interface PostCardProps {
   post: LinkedInPost;
@@ -14,6 +20,7 @@ const WEIGHT_LABELS: Record<LinkedInPost['author_weight'], string> = {
 };
 
 export function PostCard({ post }: PostCardProps) {
+  const [copyState, setCopyState] = useState<'idle' | 'success' | 'error'>('idle');
   const interested = isInterested(post);
   const normalizedText = formatPostTextForDisplay(post.post_text);
   const followerLabel = formatFollowers(post.author_followers);
@@ -22,6 +29,30 @@ export function PostCard({ post }: PostCardProps) {
     : post.is_repost
       ? 'Repost'
       : null;
+
+  useEffect(() => {
+    if (copyState === 'idle') {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCopyState('idle');
+    }, 1800);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [copyState]);
+
+  const handleCopyClick = async () => {
+    try {
+      await navigator.clipboard.writeText(buildPostClipboardText(post));
+      setCopyState('success');
+    } catch {
+      setCopyState('error');
+    }
+  };
+
+  const copyLabel =
+    copyState === 'success' ? 'Copied' : copyState === 'error' ? 'Clipboard blocked' : 'Copy context';
 
   return (
     <article className={styles.card}>
@@ -53,6 +84,20 @@ export function PostCard({ post }: PostCardProps) {
       </div>
 
       <footer className={styles.footer}>
+        <button
+          className={`${styles.secondaryAction} ${
+            copyState === 'success'
+              ? styles.copySuccess
+              : copyState === 'error'
+                ? styles.copyError
+                : ''
+          }`}
+          type="button"
+          onClick={handleCopyClick}
+        >
+          <Copy size={16} />
+          {copyLabel}
+        </button>
         <a
           className={styles.primaryAction}
           href={post.link}

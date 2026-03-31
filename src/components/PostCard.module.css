@@ -113,8 +113,11 @@
   margin-top: 22px;
   display: flex;
   justify-content: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
+.secondaryAction,
 .primaryAction {
   display: inline-flex;
   align-items: center;
@@ -129,12 +132,40 @@
   transition:
     transform 160ms ease,
     box-shadow 160ms ease,
-    filter 160ms ease;
+    filter 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.secondaryAction {
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-elevated) 85%, transparent);
+  color: var(--text-primary);
+  cursor: pointer;
 }
 
 .primaryAction:hover {
   transform: translateY(-1px);
   filter: brightness(1.03);
+}
+
+.secondaryAction:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent-primary) 35%, var(--border-subtle));
+  background: color-mix(in srgb, var(--accent-primary) 10%, var(--surface-elevated));
+}
+
+.copySuccess {
+  color: var(--accent-primary-strong);
+  border-color: color-mix(in srgb, var(--accent-primary) 42%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+}
+
+.copyError {
+  color: var(--danger-text);
+  border-color: color-mix(in srgb, var(--danger-text) 34%, transparent);
+  background: color-mix(in srgb, var(--danger-text) 10%, transparent);
 }
 
 @media (max-width: 720px) {

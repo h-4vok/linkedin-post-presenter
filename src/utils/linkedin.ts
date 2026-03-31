@@ -216,3 +216,21 @@ export function formatFollowers(value: number | null): string | null {
     maximumFractionDigits: 1,
   }).format(value);
 }
+
+export function buildPostClipboardText(post: LinkedInPost): string {
+  const lines = [
+    `Author: ${post.author}`,
+    post.author_followers !== null ? `Followers: ${formatFollowers(post.author_followers)}` : null,
+    post.author_role ? `Role: ${post.author_role}` : null,
+    `Posted: ${post.posted_time}`,
+    post.reposted_by ? `Reposted by: ${post.reposted_by}` : null,
+    `Author weight: ${post.author_weight}`,
+    `Interest status: ${post.interest_validation.status}`,
+    `Link: ${post.link}`,
+    '',
+    'Content:',
+    formatPostTextForDisplay(post.post_text),
+  ];
+
+  return lines.filter((line): line is string => line !== null).join('\n');
+}
