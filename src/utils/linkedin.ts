@@ -1,4 +1,4 @@
-import { IndexedLinkedInPost, LinkedInDataset, LinkedInPost } from '../types/linkedin';
+import { AuthorWeight, IndexedLinkedInPost, LinkedInDataset, LinkedInPost } from '../types/linkedin';
 
 const REQUIRED_TOP_LEVEL_FIELDS: Array<keyof LinkedInPost> = [
   'link',
@@ -10,7 +10,6 @@ const REQUIRED_TOP_LEVEL_FIELDS: Array<keyof LinkedInPost> = [
   'type',
   'extracted_at',
   'interest_validation',
-  'author_weight',
 ];
 
 const MOJIBAKE_MARKERS = ['â€™', 'â€œ', 'â€', 'ðŸ', 'Ã', 'Â', 'â€“', 'â€”'];
@@ -22,6 +21,40 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const hasRequiredFields = (value: Record<string, unknown>): boolean =>
   REQUIRED_TOP_LEVEL_FIELDS.every((field) => field in value);
+
+const AUTHOR_WEIGHT_VALUES: AuthorWeight[] = ['high', 'medium', 'low'];
+
+function normalizeAuthorWeight(value: unknown): AuthorWeight {
+  return typeof value === 'string' && AUTHOR_WEIGHT_VALUES.includes(value as AuthorWeight)
+    ? (value as AuthorWeight)
+    : 'medium';
+}
+
+function normalizeOptionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+
+function normalizeOptionalNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function normalizePost(item: Record<string, unknown>): LinkedInPost {
+  return {
+    link: String(item.link),
+    author: String(item.author),
+    author_profile_url: String(item.author_profile_url),
+    reposted_by: normalizeOptionalString(item.reposted_by),
+    post_text: String(item.post_text),
+    posted_time: String(item.posted_time),
+    is_repost: Boolean(item.is_repost),
+    type: String(item.type),
+    extracted_at: String(item.extracted_at),
+    interest_validation: item.interest_validation as LinkedInPost['interest_validation'],
+    author_role: normalizeOptionalString(item.author_role),
+    author_followers: normalizeOptionalNumber(item.author_followers),
+    author_weight: normalizeAuthorWeight(item.author_weight),
+  };
+}
 
 export function parseLinkedInJson(fileText: string): LinkedInDataset {
   let parsed: unknown;
@@ -50,7 +83,7 @@ export function parseLinkedInJson(fileText: string): LinkedInDataset {
     }
   });
 
-  return parsed as LinkedInDataset;
+  return parsed.map((item) => normalizePost(item as Record<string, unknown>));
 }
 
 export function flattenSearchableValues(input: unknown): string {
@@ -218,13 +251,14 @@ export function formatFollowers(value: number | null): string | null {
 }
 
 export function buildPostClipboardText(post: LinkedInPost): string {
+  const authorWeight = post.author_weight ?? 'medium';
   const lines = [
     `Author: ${post.author}`,
-    post.author_followers !== null ? `Followers: ${formatFollowers(post.author_followers)}` : null,
+    post.author_followers != null ? `Followers: ${formatFollowers(post.author_followers)}` : null,
     post.author_role ? `Role: ${post.author_role}` : null,
     `Posted: ${post.posted_time}`,
     post.reposted_by ? `Reposted by: ${post.reposted_by}` : null,
-    `Author weight: ${post.author_weight}`,
+    `Author weight: ${authorWeight}`,
     `Interest status: ${post.interest_validation.status}`,
     `Link: ${post.link}`,
     '',

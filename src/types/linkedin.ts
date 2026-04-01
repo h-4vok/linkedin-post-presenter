@@ -21,9 +21,9 @@ export interface LinkedInPost {
   type: LinkedInPostType;
   extracted_at: string;
   interest_validation: InterestValidation;
-  author_role: string | null;
-  author_followers: number | null;
-  author_weight: AuthorWeight;
+  author_role?: string | null;
+  author_followers?: number | null;
+  author_weight?: AuthorWeight | null;
 }
 
 export type LinkedInDataset = LinkedInPost[];

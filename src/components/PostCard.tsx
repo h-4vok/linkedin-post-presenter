@@ -1,7 +1,7 @@
 import { Copy, ExternalLink, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import styles from './PostCard.module.css';
-import { LinkedInPost } from '../types/linkedin';
+import { AuthorWeight, LinkedInPost } from '../types/linkedin';
 import {
   buildPostClipboardText,
   formatFollowers,
@@ -13,7 +13,7 @@ interface PostCardProps {
   post: LinkedInPost;
 }
 
-const WEIGHT_LABELS: Record<LinkedInPost['author_weight'], string> = {
+const WEIGHT_LABELS: Record<AuthorWeight, string> = {
   high: 'High signal',
   medium: 'Medium signal',
   low: 'Low signal',
@@ -23,7 +23,8 @@ export function PostCard({ post }: PostCardProps) {
   const [copyState, setCopyState] = useState<'idle' | 'success' | 'error'>('idle');
   const interested = isInterested(post);
   const normalizedText = formatPostTextForDisplay(post.post_text);
-  const followerLabel = formatFollowers(post.author_followers);
+  const followerLabel = formatFollowers(post.author_followers ?? null);
+  const authorWeight = post.author_weight ?? 'medium';
   const repostLabel = post.reposted_by
     ? `Reposted by ${post.reposted_by}`
     : post.is_repost
@@ -60,8 +61,8 @@ export function PostCard({ post }: PostCardProps) {
         <div className={styles.identity}>
           <div className={styles.titleRow}>
             <h2 className={styles.author}>{post.author}</h2>
-            <span className={`${styles.weightBadge} ${styles[`weight-${post.author_weight}`]}`}>
-              {WEIGHT_LABELS[post.author_weight]}
+            <span className={`${styles.weightBadge} ${styles[`weight-${authorWeight}`]}`}>
+              {WEIGHT_LABELS[authorWeight]}
             </span>
             {interested ? (
               <span className={styles.interestBadge}>
