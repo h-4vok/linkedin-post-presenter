@@ -1,4 +1,20 @@
-import { AuthorWeight, IndexedLinkedInPost, LinkedInDataset, LinkedInPost } from '../types/linkedin';
+import {
+  AuthorPreferenceEntry,
+  AuthorPreferencesState,
+  AuthorPreferenceStatus,
+  AuthorWeight,
+  IndexedLinkedInPost,
+  LinkedInDataset,
+  LinkedInPost,
+} from '../types/linkedin';
+
+const AUTHOR_PREFERENCES_STORAGE_KEY = 'linkedin-post-presenter:author-preferences:v1';
+
+const EMPTY_AUTHOR_PREFERENCES: AuthorPreferencesState = {
+  version: 1,
+  favorites: [],
+  blacklist: [],
+};
 
 const REQUIRED_TOP_LEVEL_FIELDS: Array<keyof LinkedInPost> = [
   'link',
@@ -198,6 +214,189 @@ export function isInterested(post: LinkedInPost): boolean {
   return post.interest_validation.status === 'interested';
 }
 
+export function normalizeAuthorName(author: string | null | undefined): string | null {
+  if (typeof author !== 'string') {
+    return null;
+  }
+
+  const normalized = author.trim().replace(/\s+/g, ' ');
+
+  return normalized ? normalized.toLocaleLowerCase() : null;
+}
+
+function createAuthorPreferenceEntry(author: string): AuthorPreferenceEntry | null {
+  const key = normalizeAuthorName(author);
+
+  if (!key) {
+    return null;
+  }
+
+  return {
+    key,
+    displayName: author.trim().replace(/\s+/g, ' '),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function isAuthorPreferenceEntry(value: unknown): value is AuthorPreferenceEntry {
+  return (
+    isRecord(value) &&
+    typeof value.key === 'string' &&
+    typeof value.displayName === 'string' &&
+    typeof value.updatedAt === 'string'
+  );
+}
+
+function normalizePreferenceEntries(value: unknown): AuthorPreferenceEntry[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const entries = new Map<string, AuthorPreferenceEntry>();
+
+  value.forEach((item) => {
+    if (!isAuthorPreferenceEntry(item)) {
+      return;
+    }
+
+    const key = normalizeAuthorName(item.displayName) ?? normalizeAuthorName(item.key);
+
+    if (!key) {
+      return;
+    }
+
+    entries.set(key, {
+      key,
+      displayName: item.displayName.trim().replace(/\s+/g, ' '),
+      updatedAt: item.updatedAt,
+    });
+  });
+
+  return Array.from(entries.values());
+}
+
+function normalizeAuthorPreferencesState(value: unknown): AuthorPreferencesState {
+  if (!isRecord(value)) {
+    return { ...EMPTY_AUTHOR_PREFERENCES };
+  }
+
+  const favorites = normalizePreferenceEntries(value.favorites);
+  const favoriteKeys = new Set(favorites.map((entry) => entry.key));
+  const blacklist = normalizePreferenceEntries(value.blacklist).filter(
+    (entry) => !favoriteKeys.has(entry.key),
+  );
+
+  return {
+    version: 1,
+    favorites,
+    blacklist,
+  };
+}
+
+export function readAuthorPreferences(): AuthorPreferencesState {
+  if (typeof window === 'undefined') {
+    return { ...EMPTY_AUTHOR_PREFERENCES };
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(AUTHOR_PREFERENCES_STORAGE_KEY);
+
+    if (!rawValue) {
+      return { ...EMPTY_AUTHOR_PREFERENCES };
+    }
+
+    return normalizeAuthorPreferencesState(JSON.parse(rawValue));
+  } catch {
+    return { ...EMPTY_AUTHOR_PREFERENCES };
+  }
+}
+
+export function writeAuthorPreferences(preferences: AuthorPreferencesState): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      AUTHOR_PREFERENCES_STORAGE_KEY,
+      JSON.stringify(normalizeAuthorPreferencesState(preferences)),
+    );
+  } catch {
+    // Ignore storage failures; in-memory preferences still keep the UI usable.
+  }
+}
+
+export function getAuthorPreferenceStatus(
+  preferences: AuthorPreferencesState,
+  author: string | null | undefined,
+): AuthorPreferenceStatus {
+  const key = normalizeAuthorName(author);
+
+  if (!key) {
+    return 'neutral';
+  }
+
+  if (preferences.favorites.some((entry) => entry.key === key)) {
+    return 'favorite';
+  }
+
+  if (preferences.blacklist.some((entry) => entry.key === key)) {
+    return 'blacklisted';
+  }
+
+  return 'neutral';
+}
+
+export function setAuthorPreference(
+  preferences: AuthorPreferencesState,
+  author: string,
+  status: AuthorPreferenceStatus,
+): AuthorPreferencesState {
+  const entry = createAuthorPreferenceEntry(author);
+
+  if (!entry) {
+    return preferences;
+  }
+
+  const withoutAuthor = {
+    version: 1 as const,
+    favorites: preferences.favorites.filter((item) => item.key !== entry.key),
+    blacklist: preferences.blacklist.filter((item) => item.key !== entry.key),
+  };
+
+  if (status === 'favorite') {
+    return {
+      ...withoutAuthor,
+      favorites: [...withoutAuthor.favorites, entry],
+    };
+  }
+
+  if (status === 'blacklisted') {
+    return {
+      ...withoutAuthor,
+      blacklist: [...withoutAuthor.blacklist, entry],
+    };
+  }
+
+  return withoutAuthor;
+}
+
+export function getUniqueAuthors(posts: LinkedInDataset): AuthorPreferenceEntry[] {
+  const authors = new Map<string, AuthorPreferenceEntry>();
+
+  posts.forEach((post) => {
+    const entry = createAuthorPreferenceEntry(post.author);
+
+    if (entry && !authors.has(entry.key)) {
+      authors.set(entry.key, entry);
+    }
+  });
+
+  return Array.from(authors.values()).sort((left, right) =>
+    left.displayName.localeCompare(right.displayName),
+  );
+}
+
 export function indexPosts(posts: LinkedInDataset): IndexedLinkedInPost[] {
   return posts.map((post) => ({
     post,
@@ -209,22 +408,46 @@ export function filterPosts(
   indexedPosts: IndexedLinkedInPost[],
   searchQuery: string,
   showInterestedOnly: boolean,
+  preferences: AuthorPreferencesState = EMPTY_AUTHOR_PREFERENCES,
+  showBlacklistedAuthors = false,
 ): LinkedInPost[] {
   const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
-
-  return indexedPosts
+  const visiblePosts = indexedPosts
     .filter(({ post, searchIndex }) => {
-      if (showInterestedOnly && !isInterested(post)) {
+      if (normalizedQuery && !searchIndex.includes(normalizedQuery)) {
         return false;
       }
 
-      if (!normalizedQuery) {
-        return true;
+      const authorPreferenceStatus = getAuthorPreferenceStatus(preferences, post.author);
+
+      if (authorPreferenceStatus === 'blacklisted' && !showBlacklistedAuthors) {
+        return false;
       }
 
-      return searchIndex.includes(normalizedQuery);
+      if (
+        showInterestedOnly &&
+        authorPreferenceStatus !== 'favorite' &&
+        !isInterested(post)
+      ) {
+        return false;
+      }
+
+      return true;
     })
     .map(({ post }) => post);
+
+  const favoritePosts: LinkedInPost[] = [];
+  const otherPosts: LinkedInPost[] = [];
+
+  visiblePosts.forEach((post) => {
+    if (getAuthorPreferenceStatus(preferences, post.author) === 'favorite') {
+      favoritePosts.push(post);
+    } else {
+      otherPosts.push(post);
+    }
+  });
+
+  return [...favoritePosts, ...otherPosts];
 }
 
 export function formatFileSize(sizeInBytes: number): string {

@@ -1,13 +1,20 @@
 import { PostCard } from './PostCard';
 import styles from './Feed.module.css';
-import { LinkedInPost } from '../types/linkedin';
+import { AuthorPreferenceStatus, LinkedInPost } from '../types/linkedin';
 
 interface FeedProps {
   posts: LinkedInPost[];
   totalPosts: number;
+  getAuthorPreferenceStatus: (author: string | null | undefined) => AuthorPreferenceStatus;
+  onAuthorPreferenceChange: (author: string, status: AuthorPreferenceStatus) => void;
 }
 
-export function Feed({ posts, totalPosts }: FeedProps) {
+export function Feed({
+  posts,
+  totalPosts,
+  getAuthorPreferenceStatus,
+  onAuthorPreferenceChange,
+}: FeedProps) {
   if (posts.length === 0) {
     return (
       <section className={styles.emptyState}>
@@ -24,7 +31,12 @@ export function Feed({ posts, totalPosts }: FeedProps) {
   return (
     <section className={styles.feed}>
       {posts.map((post) => (
-        <PostCard key={`${post.link}-${post.extracted_at}`} post={post} />
+        <PostCard
+          key={`${post.link}-${post.extracted_at}`}
+          post={post}
+          authorPreferenceStatus={getAuthorPreferenceStatus(post.author)}
+          onAuthorPreferenceChange={onAuthorPreferenceChange}
+        />
       ))}
     </section>
   );

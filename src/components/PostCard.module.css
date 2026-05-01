@@ -31,6 +31,7 @@
   margin: 0;
   font-size: 1.2rem;
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .meta {
@@ -58,7 +59,8 @@
 }
 
 .weightBadge,
-.interestBadge {
+.interestBadge,
+.authorStatus {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -67,6 +69,28 @@
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+
+.authorStatus {
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--surface-elevated) 72%, transparent);
+}
+
+.authorStatus-favorite {
+  color: var(--accent-primary-strong);
+  border-color: color-mix(in srgb, var(--accent-primary) 34%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 13%, transparent);
+}
+
+.authorStatus-blacklisted {
+  color: var(--danger-text);
+  border-color: color-mix(in srgb, var(--danger-text) 34%, transparent);
+  background: color-mix(in srgb, var(--danger-text) 10%, transparent);
+}
+
+.authorStatus-neutral {
+  color: var(--text-muted);
 }
 
 .weightBadge {
@@ -95,6 +119,47 @@
   color: var(--accent-primary-strong);
   background: color-mix(in srgb, var(--accent-primary) 16%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent);
+}
+
+.authorActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.authorAction {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--surface-elevated) 78%, transparent);
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+.authorAction:hover {
+  transform: translateY(-1px);
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 32%, var(--border-subtle));
+}
+
+.authorActionActive {
+  color: var(--accent-primary-strong);
+  border-color: color-mix(in srgb, var(--accent-primary) 42%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+}
+
+.authorActionDanger {
+  color: var(--danger-text);
+  border-color: color-mix(in srgb, var(--danger-text) 40%, transparent);
+  background: color-mix(in srgb, var(--danger-text) 12%, transparent);
 }
 
 .body {
