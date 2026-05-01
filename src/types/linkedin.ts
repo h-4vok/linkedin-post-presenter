@@ -1,6 +1,7 @@
 export type InterestStatus = 'interested' | 'not_interested' | (string & {});
 export type AuthorWeight = 'high' | 'medium' | 'low';
 export type LinkedInPostType = 'organic' | (string & {});
+export type AuthorPreferenceStatus = 'favorite' | 'blacklisted' | 'neutral';
 
 export interface InterestValidation {
   attempts: number;
@@ -37,4 +38,16 @@ export interface LoadedFileMeta {
   name: string;
   size: number;
   totalPosts: number;
+}
+
+export interface AuthorPreferenceEntry {
+  key: string;
+  displayName: string;
+  updatedAt: string;
+}
+
+export interface AuthorPreferencesState {
+  version: 1;
+  favorites: AuthorPreferenceEntry[];
+  blacklist: AuthorPreferenceEntry[];
 }

@@ -65,6 +65,9 @@ export function FileUpload({ error, onFileLoad }: FileUploadProps) {
         >
           {isLoading ? 'Loading file...' : 'Select JSON file'}
         </button>
+        <a className={styles.secondaryLink} href="#/preferences">
+          Gestionar preferencias de autores
+        </a>
         <p className={styles.hint}>Drag &amp; drop is supported</p>
       </div>
       {error ? <p className={styles.error}>{error}</p> : null}
