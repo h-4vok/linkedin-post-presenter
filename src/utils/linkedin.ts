@@ -6,6 +6,8 @@ import {
   IndexedLinkedInPost,
   LinkedInDataset,
   LinkedInPost,
+  NetworkProximity,
+  ProximityStats,
 } from '../types/linkedin';
 
 const AUTHOR_PREFERENCES_STORAGE_KEY = 'linkedin-post-presenter:author-preferences:v1';
@@ -54,6 +56,44 @@ function normalizeOptionalNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+export function normalizeNetworkProximity(value: unknown): NetworkProximity {
+  if (typeof value === 'number') {
+    if (value === 1) {
+      return '1st';
+    }
+
+    if (value === 2) {
+      return '2nd';
+    }
+
+    if (value === 3) {
+      return '3rd';
+    }
+
+    return null;
+  }
+
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim().toLocaleLowerCase().replace(/[\s-]+/g, '_');
+
+  if (['1', '1st', 'first', 'first_degree', 'firstdegree'].includes(normalized)) {
+    return '1st';
+  }
+
+  if (['2', '2nd', 'second', 'second_degree', 'seconddegree'].includes(normalized)) {
+    return '2nd';
+  }
+
+  if (['3', '3rd', 'third', 'third_degree', 'thirddegree'].includes(normalized)) {
+    return '3rd';
+  }
+
+  return null;
+}
+
 function normalizePost(item: Record<string, unknown>): LinkedInPost {
   return {
     link: String(item.link),
@@ -69,6 +109,7 @@ function normalizePost(item: Record<string, unknown>): LinkedInPost {
     author_role: normalizeOptionalString(item.author_role),
     author_followers: normalizeOptionalNumber(item.author_followers),
     author_weight: normalizeAuthorWeight(item.author_weight),
+    author_network_proximity: normalizeNetworkProximity(item.author_network_proximity),
   };
 }
 
@@ -404,15 +445,84 @@ export function indexPosts(posts: LinkedInDataset): IndexedLinkedInPost[] {
   }));
 }
 
-export function filterPosts(
+export function getNetworkProximity(post: LinkedInPost): NetworkProximity {
+  return post.author_network_proximity ?? null;
+}
+
+export function getNetworkProximityLabel(post: LinkedInPost): Exclude<NetworkProximity, null> | null {
+  return getNetworkProximity(post);
+}
+
+export function getProximityStats(posts: LinkedInPost[]): ProximityStats {
+  return posts.reduce<ProximityStats>(
+    (stats, post) => {
+      const proximity = getNetworkProximity(post);
+
+      if (proximity === '1st') {
+        stats.firstDegreeCount += 1;
+      } else if (proximity === '2nd' || proximity === '3rd') {
+        stats.nonFirstDegreeCount += 1;
+      } else {
+        stats.unknownProximityCount += 1;
+      }
+
+      return stats;
+    },
+    {
+      firstDegreeCount: 0,
+      nonFirstDegreeCount: 0,
+      unknownProximityCount: 0,
+    },
+  );
+}
+
+export function applyNetworkProximityOrdering(posts: LinkedInPost[]): LinkedInPost[] {
+  const nonFirstDegreePosts: LinkedInPost[] = [];
+  const firstDegreePosts: LinkedInPost[] = [];
+  const unknownProximityPosts: LinkedInPost[] = [];
+
+  posts.forEach((post) => {
+    const proximity = getNetworkProximity(post);
+
+    if (proximity === '1st') {
+      firstDegreePosts.push(post);
+      return;
+    }
+
+    if (proximity === '2nd' || proximity === '3rd') {
+      nonFirstDegreePosts.push(post);
+      return;
+    }
+
+    unknownProximityPosts.push(post);
+  });
+
+  const orderedPosts: LinkedInPost[] = [];
+  let nonFirstIndex = 0;
+  let firstIndex = 0;
+
+  while (nonFirstIndex < nonFirstDegreePosts.length || firstIndex < firstDegreePosts.length) {
+    const nextNonFirstPosts = nonFirstDegreePosts.slice(nonFirstIndex, nonFirstIndex + 7);
+    const nextFirstPosts = firstDegreePosts.slice(firstIndex, firstIndex + 3);
+
+    orderedPosts.push(...nextNonFirstPosts, ...nextFirstPosts);
+    nonFirstIndex += nextNonFirstPosts.length;
+    firstIndex += nextFirstPosts.length;
+  }
+
+  return [...orderedPosts, ...unknownProximityPosts];
+}
+
+function getVisiblePosts(
   indexedPosts: IndexedLinkedInPost[],
   searchQuery: string,
   showInterestedOnly: boolean,
-  preferences: AuthorPreferencesState = EMPTY_AUTHOR_PREFERENCES,
-  showBlacklistedAuthors = false,
+  preferences: AuthorPreferencesState,
+  showBlacklistedAuthors: boolean,
 ): LinkedInPost[] {
   const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
-  const visiblePosts = indexedPosts
+
+  return indexedPosts
     .filter(({ post, searchIndex }) => {
       if (normalizedQuery && !searchIndex.includes(normalizedQuery)) {
         return false;
@@ -424,17 +534,29 @@ export function filterPosts(
         return false;
       }
 
-      if (
-        showInterestedOnly &&
-        authorPreferenceStatus !== 'favorite' &&
-        !isInterested(post)
-      ) {
+      if (showInterestedOnly && authorPreferenceStatus !== 'favorite' && !isInterested(post)) {
         return false;
       }
 
       return true;
     })
     .map(({ post }) => post);
+}
+
+export function splitVisiblePostsByPreference(
+  indexedPosts: IndexedLinkedInPost[],
+  searchQuery: string,
+  showInterestedOnly: boolean,
+  preferences: AuthorPreferencesState = EMPTY_AUTHOR_PREFERENCES,
+  showBlacklistedAuthors = false,
+): { favoritePosts: LinkedInPost[]; otherPosts: LinkedInPost[] } {
+  const visiblePosts = getVisiblePosts(
+    indexedPosts,
+    searchQuery,
+    showInterestedOnly,
+    preferences,
+    showBlacklistedAuthors,
+  );
 
   const favoritePosts: LinkedInPost[] = [];
   const otherPosts: LinkedInPost[] = [];
@@ -447,7 +569,29 @@ export function filterPosts(
     }
   });
 
-  return [...favoritePosts, ...otherPosts];
+  return { favoritePosts, otherPosts };
+}
+
+export function filterPosts(
+  indexedPosts: IndexedLinkedInPost[],
+  searchQuery: string,
+  showInterestedOnly: boolean,
+  preferences: AuthorPreferencesState = EMPTY_AUTHOR_PREFERENCES,
+  showBlacklistedAuthors = false,
+  enableNetworkProximityOrdering = false,
+): LinkedInPost[] {
+  const { favoritePosts, otherPosts } = splitVisiblePostsByPreference(
+    indexedPosts,
+    searchQuery,
+    showInterestedOnly,
+    preferences,
+    showBlacklistedAuthors,
+  );
+
+  return [
+    ...favoritePosts,
+    ...(enableNetworkProximityOrdering ? applyNetworkProximityOrdering(otherPosts) : otherPosts),
+  ];
 }
 
 export function formatFileSize(sizeInBytes: number): string {
@@ -475,10 +619,12 @@ export function formatFollowers(value: number | null): string | null {
 
 export function buildPostClipboardText(post: LinkedInPost): string {
   const authorWeight = post.author_weight ?? 'medium';
+  const networkProximity = getNetworkProximityLabel(post);
   const lines = [
     `Author: ${post.author}`,
     post.author_followers != null ? `Followers: ${formatFollowers(post.author_followers)}` : null,
     post.author_role ? `Role: ${post.author_role}` : null,
+    networkProximity ? `Network proximity: ${networkProximity} degree` : null,
     `Posted: ${post.posted_time}`,
     post.reposted_by ? `Reposted by: ${post.reposted_by}` : null,
     `Author weight: ${authorWeight}`,
