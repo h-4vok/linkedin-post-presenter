@@ -8,16 +8,19 @@ import {
   AuthorPreferenceStatus,
   LoadedFileMeta,
   LinkedInDataset,
+  ProximityStats,
 } from './types/linkedin';
 import {
   filterPosts,
   formatFileSize,
   getAuthorPreferenceStatus,
+  getProximityStats,
   getUniqueAuthors,
   indexPosts,
   parseLinkedInJson,
   readAuthorPreferences,
   setAuthorPreference,
+  splitVisiblePostsByPreference,
   writeAuthorPreferences,
 } from './utils/linkedin';
 
@@ -28,6 +31,80 @@ interface PersistedAppState {
   searchQuery: string;
   showInterestedOnly: boolean;
   fileMeta: LoadedFileMeta | null;
+}
+
+function isFileReadFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLocaleLowerCase();
+
+  return (
+    message.includes('requested file or directory could not be found') ||
+    message.includes('not found at the time an operation was processed') ||
+    message.includes('could not be read') ||
+    message.includes('failed to read') ||
+    message.includes('notreadableerror')
+  );
+}
+
+function readFileWithFileReader(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error('The selected file could not be decoded as text.'));
+    };
+
+    reader.onerror = () => {
+      reject(reader.error ?? new Error('The selected file could not be read.'));
+    };
+
+    reader.readAsText(file);
+  });
+}
+
+async function readSelectedFileAsText(file: File): Promise<string> {
+  const readAttempts: Array<() => Promise<string>> = [];
+
+  if (typeof file.text === 'function') {
+    readAttempts.push(() => file.text());
+  }
+
+  if (typeof file.arrayBuffer === 'function') {
+    readAttempts.push(async () => {
+      const buffer = await file.arrayBuffer();
+      return new TextDecoder('utf-8').decode(buffer);
+    });
+  }
+
+  readAttempts.push(() => readFileWithFileReader(file));
+
+  let lastError: unknown = null;
+
+  for (const attempt of readAttempts) {
+    try {
+      return await attempt();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (isFileReadFailure(lastError)) {
+    throw new Error(
+      'The browser could not read the selected file from disk. Re-select the JSON file and try again.',
+    );
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('The selected file could not be loaded.');
 }
 
 function readPersistedState(): PersistedAppState | null {
@@ -79,12 +156,24 @@ function App() {
   const [showInterestedOnly, setShowInterestedOnly] = useState(
     persistedState?.showInterestedOnly ?? true,
   );
+  const [enableNetworkProximityOrdering, setEnableNetworkProximityOrdering] = useState(false);
   const [showBlacklistedAuthors, setShowBlacklistedAuthors] = useState(false);
   const [authorPreferences, setAuthorPreferences] = useState(() => readAuthorPreferences());
   const [loadError, setLoadError] = useState<string | null>(null);
   const [fileMeta, setFileMeta] = useState<LoadedFileMeta | null>(persistedState?.fileMeta ?? null);
 
   const indexedPosts = useMemo(() => (posts ? indexPosts(posts) : []), [posts]);
+  const visiblePostBuckets = useMemo(
+    () =>
+      splitVisiblePostsByPreference(
+        indexedPosts,
+        searchQuery,
+        showInterestedOnly,
+        authorPreferences,
+        showBlacklistedAuthors,
+      ),
+    [indexedPosts, searchQuery, showInterestedOnly, authorPreferences, showBlacklistedAuthors],
+  );
   const filteredPosts = useMemo(
     () =>
       filterPosts(
@@ -93,8 +182,20 @@ function App() {
         showInterestedOnly,
         authorPreferences,
         showBlacklistedAuthors,
+        enableNetworkProximityOrdering,
       ),
-    [indexedPosts, searchQuery, showInterestedOnly, authorPreferences, showBlacklistedAuthors],
+    [
+      indexedPosts,
+      searchQuery,
+      showInterestedOnly,
+      authorPreferences,
+      showBlacklistedAuthors,
+      enableNetworkProximityOrdering,
+    ],
+  );
+  const proximityStats = useMemo<ProximityStats>(
+    () => getProximityStats(visiblePostBuckets.otherPosts),
+    [visiblePostBuckets.otherPosts],
   );
   const detectedAuthors = useMemo(() => (posts ? getUniqueAuthors(posts) : []), [posts]);
   const getPreferenceStatus = useCallback(
@@ -140,12 +241,13 @@ function App() {
 
   const handleFileLoad = async (file: File) => {
     try {
-      const fileText = await file.text();
+      const fileText = await readSelectedFileAsText(file);
       const parsedPosts = parseLinkedInJson(fileText);
 
       setPosts(parsedPosts);
       setSearchQuery('');
       setShowInterestedOnly(true);
+      setEnableNetworkProximityOrdering(false);
       setShowBlacklistedAuthors(false);
       setLoadError(null);
       setFileMeta({
@@ -189,10 +291,13 @@ function App() {
         searchQuery={searchQuery}
         showInterestedOnly={showInterestedOnly}
         showBlacklistedAuthors={showBlacklistedAuthors}
+        enableNetworkProximityOrdering={enableNetworkProximityOrdering}
+        proximityStats={proximityStats}
         hasFeedControls={currentView === 'feed' && Boolean(posts)}
         onSearchQueryChange={setSearchQuery}
         onInterestedOnlyChange={setShowInterestedOnly}
         onShowBlacklistedAuthorsChange={setShowBlacklistedAuthors}
+        onNetworkProximityOrderingChange={setEnableNetworkProximityOrdering}
       />
       <main className={styles.feedRegion}>
         {currentView === 'preferences' ? (

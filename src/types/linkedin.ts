@@ -2,6 +2,7 @@ export type InterestStatus = 'interested' | 'not_interested' | (string & {});
 export type AuthorWeight = 'high' | 'medium' | 'low';
 export type LinkedInPostType = 'organic' | (string & {});
 export type AuthorPreferenceStatus = 'favorite' | 'blacklisted' | 'neutral';
+export type NetworkProximity = '1st' | '2nd' | '3rd' | null;
 
 export interface InterestValidation {
   attempts: number;
@@ -25,6 +26,7 @@ export interface LinkedInPost {
   author_role?: string | null;
   author_followers?: number | null;
   author_weight?: AuthorWeight | null;
+  author_network_proximity?: NetworkProximity;
 }
 
 export type LinkedInDataset = LinkedInPost[];
@@ -50,4 +52,10 @@ export interface AuthorPreferencesState {
   version: 1;
   favorites: AuthorPreferenceEntry[];
   blacklist: AuthorPreferenceEntry[];
+}
+
+export interface ProximityStats {
+  firstDegreeCount: number;
+  nonFirstDegreeCount: number;
+  unknownProximityCount: number;
 }

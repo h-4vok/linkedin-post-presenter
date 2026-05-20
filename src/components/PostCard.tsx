@@ -6,6 +6,7 @@ import {
   buildPostClipboardText,
   formatFollowers,
   formatPostTextForDisplay,
+  getNetworkProximityLabel,
   isInterested,
   normalizeAuthorName,
 } from '../utils/linkedin';
@@ -38,6 +39,7 @@ export function PostCard({
   const normalizedText = formatPostTextForDisplay(post.post_text);
   const followerLabel = formatFollowers(post.author_followers ?? null);
   const authorWeight = post.author_weight ?? 'medium';
+  const networkProximity = getNetworkProximityLabel(post);
   const hasAuthorPreferenceActions = normalizeAuthorName(post.author) !== null;
   const repostLabel = post.reposted_by
     ? `Reposted by ${post.reposted_by}`
@@ -87,6 +89,15 @@ export function PostCard({
             <span className={`${styles.weightBadge} ${styles[`weight-${authorWeight}`]}`}>
               {WEIGHT_LABELS[authorWeight]}
             </span>
+            {networkProximity ? (
+              <span
+                className={`${styles.proximityBadge} ${
+                  styles[`proximity-${networkProximity}`]
+                }`}
+              >
+                {networkProximity}
+              </span>
+            ) : null}
             {interested ? (
               <span className={styles.interestBadge}>
                 <Sparkles size={14} />

@@ -1,3 +1,4 @@
+import { ProximityStats } from '../types/linkedin';
 import { Search } from 'lucide-react';
 import styles from './FilterBar.module.css';
 
@@ -11,10 +12,13 @@ interface FilterBarProps {
   searchQuery: string;
   showInterestedOnly: boolean;
   showBlacklistedAuthors: boolean;
+  enableNetworkProximityOrdering: boolean;
+  proximityStats: ProximityStats;
   hasFeedControls: boolean;
   onSearchQueryChange: (value: string) => void;
   onInterestedOnlyChange: (value: boolean) => void;
   onShowBlacklistedAuthorsChange: (value: boolean) => void;
+  onNetworkProximityOrderingChange: (value: boolean) => void;
 }
 
 export function FilterBar({
@@ -25,10 +29,13 @@ export function FilterBar({
   searchQuery,
   showInterestedOnly,
   showBlacklistedAuthors,
+  enableNetworkProximityOrdering,
+  proximityStats,
   hasFeedControls,
   onSearchQueryChange,
   onInterestedOnlyChange,
   onShowBlacklistedAuthorsChange,
+  onNetworkProximityOrderingChange,
 }: FilterBarProps) {
   return (
     <header className={styles.header}>
@@ -90,6 +97,26 @@ export function FilterBar({
               </span>
               <span className={styles.toggleLabel}>Mostrar blacklist</span>
             </label>
+            <label className={styles.toggle}>
+              <input
+                type="checkbox"
+                checked={enableNetworkProximityOrdering}
+                onChange={(event) => onNetworkProximityOrderingChange(event.target.checked)}
+              />
+              <span className={styles.toggleTrack}>
+                <span className={styles.toggleThumb} />
+              </span>
+              <span className={styles.toggleLabel}>70/30 red extendida</span>
+            </label>
+            {enableNetworkProximityOrdering ? (
+              <p className={styles.proximityStats} aria-live="polite">
+                {proximityStats.nonFirstDegreeCount} fuera de 1er grado /{' '}
+                {proximityStats.firstDegreeCount} 1er grado
+                {proximityStats.unknownProximityCount > 0
+                  ? ` / ${proximityStats.unknownProximityCount} sin proximidad`
+                  : ''}
+              </p>
+            ) : null}
           </div>
         ) : null}
       </div>
