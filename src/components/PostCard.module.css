@@ -144,6 +144,41 @@
   border: 1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent);
 }
 
+.rankingBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fef3c7;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(244, 114, 182, 0.18));
+  border: 1px solid rgba(251, 191, 36, 0.34);
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.08) inset;
+  position: relative;
+  overflow: hidden;
+  animation: rankingBadgePulse 2.4s ease-in-out infinite;
+}
+
+.rankingBadge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 35%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.08) 65%,
+    transparent 100%
+  );
+  transform: translateX(-120%);
+  animation: rankingBadgeShine 3.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
 .authorActions {
   display: flex;
   flex-wrap: wrap;
@@ -254,6 +289,41 @@
   color: var(--danger-text);
   border-color: color-mix(in srgb, var(--danger-text) 34%, transparent);
   background: color-mix(in srgb, var(--danger-text) 10%, transparent);
+}
+
+@keyframes rankingBadgePulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    box-shadow:
+      0 0 0 1px rgba(251, 191, 36, 0.08) inset,
+      0 0 0 rgba(251, 191, 36, 0);
+  }
+
+  50% {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow:
+      0 0 0 1px rgba(251, 191, 36, 0.12) inset,
+      0 0 18px rgba(251, 191, 36, 0.12);
+  }
+}
+
+@keyframes rankingBadgeShine {
+  0%,
+  58% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rankingBadge,
+  .rankingBadge::before {
+    animation: none;
+  }
 }
 
 @media (max-width: 720px) {

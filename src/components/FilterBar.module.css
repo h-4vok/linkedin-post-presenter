@@ -63,6 +63,34 @@
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
 }
 
+.resetButton {
+  border: 1px solid color-mix(in srgb, var(--danger-text) 34%, var(--border-subtle));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--danger-text) 18%, var(--surface-elevated)), color-mix(in srgb, var(--surface-elevated) 88%, transparent));
+  color: var(--text-primary);
+  border-radius: 999px;
+  padding: 11px 16px;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.resetButton:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--danger-text) 50%, var(--border-subtle));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--danger-text) 24%, var(--surface-elevated)),
+    color-mix(in srgb, var(--surface-elevated) 92%, transparent)
+  );
+}
+
 .dot {
   color: var(--accent-secondary);
   margin: 0 6px;
@@ -191,6 +219,10 @@
     width: fit-content;
   }
 
+  .resetButton {
+    width: fit-content;
+  }
+
   .searchField {
     min-width: 100%;
   }
@@ -216,5 +248,9 @@
   .navLink {
     flex: 1;
     text-align: center;
+  }
+
+  .resetButton {
+    width: 100%;
   }
 }

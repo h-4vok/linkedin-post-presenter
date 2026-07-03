@@ -29,6 +29,14 @@ const AUTHOR_STATUS_LABELS: Record<AuthorPreferenceStatus, string> = {
   neutral: 'Neutral',
 };
 
+function getRankingLabel(ranking: number | null | undefined): string | null {
+  if (ranking === null || ranking === undefined) {
+    return null;
+  }
+
+  return ranking === 1 ? 'AI priority #1' : `AI priority #${ranking}`;
+}
+
 export function PostCard({
   post,
   authorPreferenceStatus,
@@ -40,6 +48,7 @@ export function PostCard({
   const followerLabel = formatFollowers(post.author_followers ?? null);
   const authorWeight = post.author_weight ?? 'medium';
   const networkProximity = getNetworkProximityLabel(post);
+  const rankingLabel = getRankingLabel(post.ranking);
   const hasAuthorPreferenceActions = normalizeAuthorName(post.author) !== null;
   const repostLabel = post.reposted_by
     ? `Reposted by ${post.reposted_by}`
@@ -98,6 +107,7 @@ export function PostCard({
                 {networkProximity}
               </span>
             ) : null}
+            {rankingLabel ? <span className={styles.rankingBadge}>{rankingLabel}</span> : null}
             {interested ? (
               <span className={styles.interestBadge}>
                 <Sparkles size={14} />

@@ -16,6 +16,7 @@ export interface LinkedInPost {
   link: string;
   author: string;
   author_profile_url: string;
+  ranking?: number | null;
   reposted_by: string | null;
   post_text: string;
   posted_time: string;

@@ -56,6 +56,18 @@ function normalizeOptionalNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+function normalizeRanking(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return null;
+  }
+
+  if (!Number.isInteger(value) || value < 1) {
+    return null;
+  }
+
+  return value;
+}
+
 export function normalizeNetworkProximity(value: unknown): NetworkProximity {
   if (typeof value === 'number') {
     if (value === 1) {
@@ -99,6 +111,7 @@ function normalizePost(item: Record<string, unknown>): LinkedInPost {
     link: String(item.link),
     author: String(item.author),
     author_profile_url: String(item.author_profile_url),
+    ranking: normalizeRanking(item.ranking),
     reposted_by: normalizeOptionalString(item.reposted_by),
     post_text: String(item.post_text),
     posted_time: String(item.posted_time),
@@ -445,6 +458,14 @@ export function indexPosts(posts: LinkedInDataset): IndexedLinkedInPost[] {
   }));
 }
 
+function getRanking(post: LinkedInPost): number | null {
+  return post.ranking ?? null;
+}
+
+function isRankedPost(post: LinkedInPost): boolean {
+  return getRanking(post) !== null;
+}
+
 export function getNetworkProximity(post: LinkedInPost): NetworkProximity {
   return post.author_network_proximity ?? null;
 }
@@ -528,6 +549,10 @@ function getVisiblePosts(
         return false;
       }
 
+      if (isRankedPost(post)) {
+        return true;
+      }
+
       const authorPreferenceStatus = getAuthorPreferenceStatus(preferences, post.author);
 
       if (authorPreferenceStatus === 'blacklisted' && !showBlacklistedAuthors) {
@@ -549,7 +574,7 @@ export function splitVisiblePostsByPreference(
   showInterestedOnly: boolean,
   preferences: AuthorPreferencesState = EMPTY_AUTHOR_PREFERENCES,
   showBlacklistedAuthors = false,
-): { favoritePosts: LinkedInPost[]; otherPosts: LinkedInPost[] } {
+): { rankedPosts: LinkedInPost[]; favoritePosts: LinkedInPost[]; otherPosts: LinkedInPost[] } {
   const visiblePosts = getVisiblePosts(
     indexedPosts,
     searchQuery,
@@ -558,10 +583,16 @@ export function splitVisiblePostsByPreference(
     showBlacklistedAuthors,
   );
 
+  const rankedPosts: LinkedInPost[] = [];
   const favoritePosts: LinkedInPost[] = [];
   const otherPosts: LinkedInPost[] = [];
 
   visiblePosts.forEach((post) => {
+    if (isRankedPost(post)) {
+      rankedPosts.push(post);
+      return;
+    }
+
     if (getAuthorPreferenceStatus(preferences, post.author) === 'favorite') {
       favoritePosts.push(post);
     } else {
@@ -569,7 +600,16 @@ export function splitVisiblePostsByPreference(
     }
   });
 
-  return { favoritePosts, otherPosts };
+  return {
+    rankedPosts: rankedPosts.sort((left, right) => {
+      const leftRank = getRanking(left) ?? Number.POSITIVE_INFINITY;
+      const rightRank = getRanking(right) ?? Number.POSITIVE_INFINITY;
+
+      return leftRank - rightRank;
+    }),
+    favoritePosts,
+    otherPosts,
+  };
 }
 
 export function filterPosts(
@@ -580,7 +620,7 @@ export function filterPosts(
   showBlacklistedAuthors = false,
   enableNetworkProximityOrdering = false,
 ): LinkedInPost[] {
-  const { favoritePosts, otherPosts } = splitVisiblePostsByPreference(
+  const { rankedPosts, favoritePosts, otherPosts } = splitVisiblePostsByPreference(
     indexedPosts,
     searchQuery,
     showInterestedOnly,
@@ -589,6 +629,7 @@ export function filterPosts(
   );
 
   return [
+    ...rankedPosts,
     ...favoritePosts,
     ...(enableNetworkProximityOrdering ? applyNetworkProximityOrdering(otherPosts) : otherPosts),
   ];
