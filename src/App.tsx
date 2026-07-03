@@ -222,6 +222,17 @@ function App() {
     }
 
     try {
+      const shouldPersistState =
+        posts !== null ||
+        searchQuery !== '' ||
+        showInterestedOnly !== true ||
+        fileMeta !== null;
+
+      if (!shouldPersistState) {
+        window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        return;
+      }
+
       const stateToPersist: PersistedAppState = {
         posts,
         searchQuery,
@@ -271,6 +282,21 @@ function App() {
     [],
   );
 
+  const handleDiscardLoadedJson = useCallback(() => {
+    setPosts(null);
+    setSearchQuery('');
+    setShowInterestedOnly(true);
+    setEnableNetworkProximityOrdering(false);
+    setShowBlacklistedAuthors(false);
+    setLoadError(null);
+    setFileMeta(null);
+
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      window.location.hash = '#/feed';
+    }
+  }, []);
+
   if (!posts && currentView === 'feed') {
     return (
       <main className={styles.shell}>
@@ -294,10 +320,12 @@ function App() {
         enableNetworkProximityOrdering={enableNetworkProximityOrdering}
         proximityStats={proximityStats}
         hasFeedControls={currentView === 'feed' && Boolean(posts)}
+        hasLoadedDataset={Boolean(posts)}
         onSearchQueryChange={setSearchQuery}
         onInterestedOnlyChange={setShowInterestedOnly}
         onShowBlacklistedAuthorsChange={setShowBlacklistedAuthors}
         onNetworkProximityOrderingChange={setEnableNetworkProximityOrdering}
+        onDiscardLoadedJson={handleDiscardLoadedJson}
       />
       <main className={styles.feedRegion}>
         {currentView === 'preferences' ? (

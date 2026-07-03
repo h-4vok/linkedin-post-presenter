@@ -15,10 +15,12 @@ interface FilterBarProps {
   enableNetworkProximityOrdering: boolean;
   proximityStats: ProximityStats;
   hasFeedControls: boolean;
+  hasLoadedDataset: boolean;
   onSearchQueryChange: (value: string) => void;
   onInterestedOnlyChange: (value: boolean) => void;
   onShowBlacklistedAuthorsChange: (value: boolean) => void;
   onNetworkProximityOrderingChange: (value: boolean) => void;
+  onDiscardLoadedJson: () => void;
 }
 
 export function FilterBar({
@@ -32,10 +34,12 @@ export function FilterBar({
   enableNetworkProximityOrdering,
   proximityStats,
   hasFeedControls,
+  hasLoadedDataset,
   onSearchQueryChange,
   onInterestedOnlyChange,
   onShowBlacklistedAuthorsChange,
   onNetworkProximityOrderingChange,
+  onDiscardLoadedJson,
 }: FilterBarProps) {
   return (
     <header className={styles.header}>
@@ -63,6 +67,11 @@ export function FilterBar({
             Preferencias
           </a>
         </nav>
+        {hasLoadedDataset ? (
+          <button className={styles.resetButton} type="button" onClick={onDiscardLoadedJson}>
+            Reset
+          </button>
+        ) : null}
         {hasFeedControls ? (
           <div className={styles.controls}>
             <label className={styles.searchField}>
